@@ -93,6 +93,10 @@ def interactive_latent_walk_plot(recon_meshes, latent_walk_meshes):
 
 def get_polar_contour_fig(rad, theta):
     fig = go.Figure()
+    fig.update_layout(
+        autosize=False,
+        width=400,
+        height=400)
     fig.add_trace(go.Scatterpolar(
             r=rad,
             theta=theta,
@@ -131,7 +135,107 @@ def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
         )
     return fig
 
-def get_one_param_polar_fig(theta, rad, theta_interp, rad_interp, an, bn):
+def get_one_param_polar_fig(theta, rad, x, y):
+    def approximate_one_param(z, thresh):
+        n = len(z)
+        zhat = np.fft.fft(z, n)
+        PSD = np.real(zhat * np.conj(zhat)/n)
+        indices = PSD > thresh
+        PSDclean = PSD * indices
+        zhat = indices * zhat
+        zfilt = np.fft.ifft(zhat)
+        return zfilt
+
+    fig = make_subplots(rows=1, cols=2,
+                        column_widths = [0.6,0.4])
+
+    fig.update_layout(
+        autosize=False,
+        width=500,
+        height=300)
+
+
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            line=dict(color="#FFA500", width=2),
+            name="Original function          ", 
+            x=x,
+            y=y),
+        row=1, col=1)
+
+    fig.update_xaxes(range=[x.min()-0.2, x.max()+0.2],row=1,col=1)
+    fig.update_yaxes(range=[y.min()-0.2, y.max()+0.2],row=1,col=1)
+
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            mode="lines",
+            line=dict(dash="dash", color="#FFA500", width=2),
+            x=np.arange(0,len(rad),1),
+            y=rad,
+            showlegend=False),
+        row=1, col=2)
+
+    thresholds = [5.0, 0.10, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00005]
+    thresholds_ncoeffs = [1,3,5,7,9,13,17,29,37]
+    for t in thresholds:
+        rfilt = approximate_one_param(rad, t)
+        real_rfilt = np.real(rfilt)
+        zx = real_rfilt*np.cos(theta)
+        zy = real_rfilt*np.sin(theta)
+
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                mode="lines",
+                line=dict(color="#00CED1", width=2),
+                name=f"Fourier approximation", 
+                x=zx,
+                y=zy),
+            row=1, col=1)
+        
+        fig.add_trace(
+            go.Scatter(
+                visible=False,
+                line=dict(color="#00CED1", width=2),
+                mode="lines+markers",
+                x=np.arange(0,len(real_rfilt),1),
+                y=real_rfilt,
+                showlegend=False),
+            row=1, col=2)
+
+    steps = []
+    n_traces = 2
+    for i in range(0, len(fig.data)-2, n_traces):
+        step = dict(
+            method="update",
+            args=[{"visible": [False] * len(fig.data)}],
+        )
+        step["args"][0]["visible"][0] = True
+        step["args"][0]["visible"][1] = True
+        if i > 0:
+            step["args"][0]["visible"][i:i+n_traces] = [True] * n_traces
+        steps.append(step)
+
+    sliders = [dict(
+        active=0,
+        currentvalue={"prefix": "Terms: "},
+        pad={"t": 50},
+        steps=steps
+    )]
+
+
+    fig.update_layout(
+        sliders=sliders
+    )
+
+    for i in range(len(thresholds)):
+        fig["layout"]["sliders"][0]["steps"][i]["label"] = f"{thresholds_ncoeffs[i]}"
+
+    return fig
+
+def get_one_param_polar_fig_prev(theta, rad, theta_interp, rad_interp, an, bn):
 
     fig = make_subplots(rows=1, cols=2,
                         column_widths = [0.7,0.3],
@@ -252,6 +356,9 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
     fig = make_subplots(
         rows=1, cols=2,
         column_widths=[0.6, 0.4])
+
+    fig.update_layout(
+    autosize=False)
 
     fig.add_trace(
         go.Scatter(

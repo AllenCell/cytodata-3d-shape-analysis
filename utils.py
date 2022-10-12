@@ -28,28 +28,6 @@ def get_mesh_from_series(coeff_dict, lmax):
     mesh, _ = shtools.get_reconstruction_from_coeffs(coeffs)
     return mesh
 
-def get_sample_cell_image(SEED=240):
-    df = pd.read_csv("/allen/aics/assay-dev/MicroscopyOtherData/Viana/datasets/variance/preprocessing/manifest.csv")
-    sample_cell = df.sample(1, random_state=SEED)
-    save_path = f"resources/{sample_cell['CellId'].values[0]}.tiff"
-    multi_img = AICSImage(sample_cell["crop_seg"].values[0]).data.squeeze()
-    OmeTiffWriter.save(multi_img, save_path, dim_order="CZYX", overwrite_file=True)
-    print(f"Wrote {save_path}")
-
-def write_sample_meshes():
-    sample_cell_img = get_sample_cell_image()
-    sample_nuc_img = sample_cell_img[0,:,:,:]
-    (sample_nuc_shcoeffs, _), (_, _, _, _) = shparam.get_shcoeffs(sample_nuc_img, \
-                                                                  16)
-    nuc_mesh = pv.wrap(get_mesh_from_series(pd.Series(sample_nuc_shcoeffs),"",16))
-    nuc_mesh.save("resources/sample_nuc.vtk")
-
-    sample_mem_img = sample_cell_img[1,:,:,:]
-    (sample_mem_shcoeffs, _), (_, _, _, _) = shparam.get_shcoeffs(sample_mem_img, \
-                                                                  16)
-    mem_mesh = pv.wrap(get_mesh_from_series(pd.Series(sample_mem_shcoeffs),"",16))
-    mem_mesh.save("resources/sample_mem.vtk")
-
 def vtk_polydata_to_imagedata(polydata, dimensions=(64,64,64), padding=0):
     xi, xf, yi, yf, zi, zf = polydata.GetBounds()
     dx, dy, dz = dimensions
