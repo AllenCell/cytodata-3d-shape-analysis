@@ -9,6 +9,17 @@ from aicsimageio.writers import OmeTiffWriter
 from aicsimageio import AICSImage
 from aicsshparam import shparam, shtools
 
+
+def approximate_one_param(z, thresh):
+    n = len(z)
+    zhat = np.fft.fft(z, n)
+    PSD = np.real(zhat * np.conj(zhat)/n)
+    indices = PSD > thresh
+    PSDclean = PSD * indices
+    zhat = indices * zhat
+    zfilt = np.fft.ifft(zhat)
+    return zfilt
+
 def get_mesh_from_series(coeff_dict, lmax):
     row = pd.Series(coeff_dict)
     coeffs = np.zeros((2, lmax, lmax), dtype=np.float32)
