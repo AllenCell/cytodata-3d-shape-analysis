@@ -71,10 +71,10 @@ def get_square_wave_fig(x,y,L,an,bn,n_terms=100):
 def get_recon_mesh_plotter(orig_mesh, recon_mesh):
     plotter = pv.Plotter(window_size=[900,400], shape=(1,2)) 
     plotter.subplot(0,0)
-    plotter.add_mesh(orig_mesh, color='lightgray')
+    plotter.add_mesh(orig_mesh, color="lightgray")
     plotter.subplot(0,1)
-    plotter.add_mesh(recon_mesh, color='lightgray')
-    plotter.set_background('white')
+    plotter.add_mesh(recon_mesh, color="lightgray")
+    plotter.set_background("white")
     return plotter
 
 def interactive_latent_walk_plot(recon_meshes, latent_walk_meshes):
@@ -102,7 +102,7 @@ def interactive_latent_walk_plot(recon_meshes, latent_walk_meshes):
         0,
         pointa=(0.25, 0.9), 
         pointb=(0.75, 0.9), 
-        event_type='always')
+        event_type="always")
 
 def get_polar_contour_fig(rad, theta):
     fig = go.Figure()
@@ -113,7 +113,7 @@ def get_polar_contour_fig(rad, theta):
     fig.add_trace(go.Scatterpolar(
             r=rad,
             theta=theta,
-            mode='lines',
+            mode="lines",
             thetaunit = "radians",
         ))
     fig.update_layout(polar = dict(radialaxis = dict(showticklabels = False)))
@@ -135,16 +135,16 @@ def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
         y=walk_line_y[2],
         ax=walk_line_x[1] - 0.2,
         ay=walk_line_y[1],
-        xref='x',
-        yref='y',
-        axref='x',
-        ayref='y',
-        text='',
+        xref="x",
+        yref="y",
+        axref="x",
+        ayref="y",
+        text="",
         showarrow=True,
         arrowhead=3,
         arrowsize=5,
         arrowwidth=1,
-        arrowcolor='black',
+        arrowcolor="black",
         )
     return fig
 
@@ -153,9 +153,14 @@ def get_one_param_polar_fig(theta, rad, x, y):
     fig = make_subplots(rows=1, cols=2,
                         column_widths = [0.6,0.4])
 
+    
+    sorted_idxs = np.argsort(theta)
+    theta_sorted = theta[sorted_idxs]
+    rad_sorted = rad[sorted_idxs]
+
     fig.update_layout(
         autosize=False,
-        width=900,
+        width=950,
         height=600)
 
 
@@ -176,18 +181,21 @@ def get_one_param_polar_fig(theta, rad, x, y):
             visible=True,
             mode="lines",
             line=dict(dash="dash", color="black", width=2),
-            x=np.arange(0,len(rad),1),
-            y=rad,
+            x=theta_sorted,
+            y=rad_sorted,
             showlegend=False),
         row=1, col=2)
 
     thresholds = [5.0, 0.10, 0.05, 0.01, 0.005]
     thresholds_ncoeffs = [1,3,5,7,9]
+
     for t in thresholds:
         rfilt = approximate_one_param(rad, t)
         real_rfilt = np.real(rfilt)
         zx = real_rfilt*np.cos(theta)
         zy = real_rfilt*np.sin(theta)
+
+        real_rfilt_sorted = real_rfilt[sorted_idxs]
 
         fig.add_trace(
             go.Scatter(
@@ -204,8 +212,8 @@ def get_one_param_polar_fig(theta, rad, x, y):
                 visible=False,
                 line=dict(color="#00CED1", width=2),
                 mode="lines+markers",
-                x=np.arange(0,len(real_rfilt),1),
-                y=real_rfilt,
+                x=theta_sorted,
+                y=real_rfilt_sorted,
                 showlegend=False),
             row=1, col=2)
 
@@ -233,6 +241,18 @@ def get_one_param_polar_fig(theta, rad, x, y):
     fig.update_layout(
         sliders=sliders
     )
+
+    fig["layout"]["xaxis2"]["title"]=r"$\theta$"
+
+    fig.update_yaxes(
+        title_text = r"$r(\theta)$",
+        title_standoff=0,
+        row=1,col=2)
+
+    fig.update_xaxes(tickvals=[-np.pi, 0, np.pi], 
+                     ticktext=[r"$-\pi$", "0", r"$\pi$"],
+                     range=[-np.pi-0.1, np.pi+0.1],
+                     row=1, col=2)
 
     for i in range(len(thresholds)):
         fig["layout"]["sliders"][0]["steps"][i]["label"] = f"{thresholds_ncoeffs[i]}"
@@ -363,7 +383,7 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
 
     fig.update_layout(
         autosize=False,
-        width=1000,
+        width=950,
         height=600)
 
     fig.add_trace(
@@ -377,18 +397,48 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
         row=1, col=1)
 
     if set_aspect_ratio:
-        fig.update_xaxes(range=[xy[:,0].min() - 0.3, xy[:,0].max() + 0.1],row=1,col=1)
-        fig.update_yaxes(range=[xy[:,1].min() - 0.1, xy[:,1].max() + 0.1],row=1,col=1)
+        fig.update_xaxes(range=[xy[:,0].min() - 0.2, xy[:,0].max() + 0.2],row=1,col=1)
+        fig.update_yaxes(range=[xy[:,1].min() - 0.2, xy[:,1].max() + 0.2],row=1,col=1)
 
     fig.update_layout(title="")
 
     recon_errs = []
     recon_errs.append(-1)
 
+    dxy = np.diff(xy, axis=0)
+    dxy = np.insert(dxy, 0, [0,0]).reshape(xy.shape[0],2)
+    dt = np.sqrt((dxy ** 2).sum(axis=1))
+    arcl = np.cumsum(dt)
+    T = arcl[-1]
+    t_orig = (2 * np.pi * arcl) / T
+
+    fig.add_trace(
+            go.Scatter(
+                visible=True,
+                line=dict(dash="dash", color="rgb(204, 102, 119)", width=2),
+                mode="lines",
+                showlegend=True,
+                name="x(t)",
+                x=t_orig,
+                y=xy[:,0]),
+            row=1, col=2
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            line=dict(dash="dash", color="rgb(136, 204, 238)", width=2),
+            mode="lines",
+            showlegend=True,
+            name="y(t)",
+            x=t_orig,
+            y=xy[:,1]),
+        row=1, col=2
+    )
+
     t = np.linspace(0, 1.0, n_points)
     t_approx = t*2*np.pi
-    t_orig = np.linspace(0, 1.0, xy.shape[0])
-    t_orig = t_orig*2*np.pi
+
     xt = np.ones((n_points,)) * a0
     yt = np.ones((n_points,)) * c0
 
@@ -399,7 +449,6 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
         yt += (coeffs[terms, 2] * np.cos(2 * (terms + 1) * np.pi * t)) + (
             coeffs[terms, 3] * np.sin(2 * (terms + 1) * np.pi * t)
         )
-
 
         if show_recon_err:
             points = np.asarray([xt,yt]).T
@@ -412,7 +461,8 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
                 visible=False,
                 line=dict(color="rgba(136, 204, 238, 0.7)", width=2),
                 mode="lines",
-                name="y(t)",
+                name="y(t) - approximation",
+                showlegend=False,
                 x=t_approx,
                 y=yt),
             row=1, col=2
@@ -421,33 +471,12 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
         fig.add_trace(
             go.Scatter(
                 visible=False,
-                line=dict(dash="dash", color="rgb(136, 204, 238)", width=2),
-                mode="lines",
-                showlegend=False,
-                x=t_orig,
-                y=xy[:,1]),
-            row=1, col=2
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                visible=False,
                 line=dict(color="rgba(204, 102, 119, 0.7)", width=2),
                 mode="lines",
-                name="x(t)",
+                name="x(t) - approximation",
+                showlegend=False,
                 x=t_approx,
                 y=xt),
-            row=1, col=2
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                visible=False,
-                line=dict(dash="dash", color="rgb(204, 102, 119)", width=2),
-                mode="lines",
-                showlegend=False,
-                x=t_orig,
-                y=xy[:,0]),
             row=1, col=2
         )
 
@@ -462,9 +491,8 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
         row=1, col=1)
 
     steps = []
-
-    n_traces = 5
-    for i in range(0, len(fig.data)-1, n_traces):
+    n_traces = 3
+    for i in range(0, len(fig.data)-3, n_traces):
         if i > 0 and show_recon_err:
             title_label = f"Reconstruction error (MSE): {round(recon_errs[int(i/n_traces)],3)}"
         else:
@@ -475,6 +503,8 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
                 {"title": title_label}],
         )
         step["args"][0]["visible"][0] = True
+        step["args"][0]["visible"][1] = True
+        step["args"][0]["visible"][2] = True
         if i > 0:
             step["args"][0]["visible"][i:i+n_traces] = [True] * n_traces
         steps.append(step)
@@ -490,7 +520,11 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
         sliders=sliders
     )
 
-    fig['layout']['xaxis2']['title']=r"$t$"
+    fig["layout"]["xaxis2"]["title"]=r"$t$"
+    fig.update_xaxes(tickvals=[0, np.pi, 2*np.pi], 
+                    ticktext=["0", r"$\pi$", r"$2\pi$"],
+                    row=1, col=2)
+
 
     for i in range(n_terms):
         fig["layout"]["sliders"][0]["steps"][i]["label"] = f"{i}"
@@ -566,9 +600,18 @@ def get_two_param_coeff_table(xy):
         cell_text.append(vals)
 
     df = pd.DataFrame(cell_text, columns=cols)
-    df["n_terms"] = ['1 term', '8 terms', '16 terms', '24 terms']
+    df["n_terms"] = ["1 term", "8 terms", "16 terms", "24 terms"]
     df = df.set_index("n_terms")
     return df
+
+def get_pca_result_fig(axes, labels):
+    fig = px.scatter(x=axes[:,0],
+                    y=axes[:,1],
+                    color=labels)
+    fig.update_layout(
+        xaxis_title="PC1", yaxis_title="PC2"
+    )
+    return fig
 
 def write_3d_reconstruction_gif(gt_mesh, recon_errors, out_file="output/lmax_reconstruction_nucleus.gif"):
     mesh_files = sorted(glob.glob("output/recon-0*.vtk"))
@@ -582,9 +625,9 @@ def write_3d_reconstruction_gif(gt_mesh, recon_errors, out_file="output/lmax_rec
     plotter.subplot(0,1)
     plotter.add_mesh(recon_mesh)
     label = plotter.add_text(f"Reconstruction error: {recon_errors[0]}", 
-                            position='upper_right', 
+                            position="upper_right", 
                             font_size=20)
-    plotter.set_background('white')
+    plotter.set_background("white")
     plotter.write_frame()
 
     for i,f in enumerate(mesh_files[1:]):
@@ -596,7 +639,7 @@ def write_3d_reconstruction_gif(gt_mesh, recon_errors, out_file="output/lmax_rec
         mesh_i = pv.read(f)
         plotter.add_mesh(mesh_i)
         plotter.add_text(f"Reconstruction error: {recon_errors[i]}", 
-                        position='upper_right', 
+                        position="upper_right", 
                         font_size=20)
         plotter.write_frame()
         plotter.write_frame()
@@ -607,13 +650,13 @@ def write_3d_reconstruction_gif(gt_mesh, recon_errors, out_file="output/lmax_rec
 
 import numpy as np
 import pyvista as pv
-pv.global_theme.font.color = 'black'
+pv.global_theme.font.color = "black"
 pv.start_xvfb()
 
 def interactive_reconstruction_plot(recon_errors, recon_meshes):
     lmaxes = np.arange(1,len(recon_errors)+1,1)
     p = pv.Plotter()
-    p.set_background('white')
+    p.set_background("white")
     
     recon_chart = pv.Chart2D(
         size=(0.46, 0.25), 
@@ -651,5 +694,5 @@ def interactive_reconstruction_plot(recon_errors, recon_meshes):
         0,
         pointa=(0.25, 0.9), 
         pointb=(0.75, 0.9), 
-        event_type='always')
+        event_type="always")
         
