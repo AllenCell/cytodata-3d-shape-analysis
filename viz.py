@@ -10,6 +10,7 @@ import glob
 import pandas as pd
 from utils import approximate_one_param
 
+pv.global_theme.font.color = "black"
 
 def get_square_wave_simple_fig(x,y):
     fig = go.Figure()
@@ -648,12 +649,8 @@ def write_3d_reconstruction_gif(gt_mesh, recon_errors, out_file="output/lmax_rec
     plotter.close()
     print(f"Wrote {out_file}")
 
-import numpy as np
-import pyvista as pv
-pv.global_theme.font.color = "black"
-pv.start_xvfb()
-
 def interactive_reconstruction_plot(recon_errors, recon_meshes):
+    pv.start_xvfb()
     lmaxes = np.arange(1,len(recon_errors)+1,1)
     p = pv.Plotter()
     p.set_background("white")
