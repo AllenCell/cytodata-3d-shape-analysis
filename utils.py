@@ -1,13 +1,10 @@
 import numpy as np
 import pandas as pd
 
-import pyvista as pv
 import vtk
 from vtk.util import numpy_support
 
-from aicsimageio.writers import OmeTiffWriter
-from aicsimageio import AICSImage
-from aicsshparam import shparam, shtools
+from aicsshparam import shtools
 
 
 def approximate_one_param(z, thresh):
@@ -97,33 +94,3 @@ def get_image_from_polydata(mesh):
     vtk_image = vtk_polydata_to_imagedata(mesh)
     np_image = vtk_image_to_numpy_image(vtk_image)
     return np_image
-
-# GIF method for viz reconstruction error
-# import glob
-# mesh_files = sorted(glob.glob("output/recon-0*.vtk"))
-
-# plotter = pv.Plotter(notebook=False, off_screen=True)
-# plotter.open_gif("output/lmax_reconstruction_nucleus.gif")
-# plotter.set_background("white")
-
-# recon_mesh = pv.read(mesh_files[10])
-# meshes = gt_mesh + recon_mesh
-# meshes = meshes.rotate_z(-20, inplace=True)
-# plotter.add_mesh(meshes, show_scalar_bar=False)
-# l = plotter.add_text(f"Lmax=1 Reconstruction error: {recon_errors[0]:.2f}", color="black")
-
-# for i,f in enumerate(mesh_files[1:]):
-#     recon_mesh = pv.read(f)
-#     meshes.overwrite(gt_mesh+recon_mesh)
-#     _ = plotter.remove_actor(l)
-#     plotter.add_mesh(meshes, show_scalar_bar=False)
-#     l = plotter.add_text(f"Lmax={i+2} Reconstruction error: {recon_errors[i]:.2f}", color="black")
-#     plotter.render()
-#     plotter.write_frame()
-#     plotter.write_frame()
-#     plotter.write_frame()
-
-# plotter.close()
-
-# from IPython.display import Image
-# display(Image(data=open("output/lmax_reconstruction_nucleus.gif","rb").read(), format="png"))
