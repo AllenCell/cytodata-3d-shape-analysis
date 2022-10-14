@@ -5,23 +5,10 @@ from plotly.subplots import make_subplots
 import pyvista as pv
 import numpy as np
 from scipy.spatial import KDTree
-import glob
 import pandas as pd
 from utils import approximate_one_param
 
 pv.global_theme.font.color = "black"
-
-def get_square_wave_simple_fig(x,y):
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Scatter(
-            visible=True,
-            line=dict(color="black", width=2),
-            name="Square wave", 
-            x=x,
-            y=y))
-    return fig
 
 def get_square_wave_fig(x,y,L,an,bn,n_terms=100):
     fig = go.Figure()
@@ -67,69 +54,6 @@ def get_square_wave_fig(x,y,L,an,bn,n_terms=100):
 
     return fig
 
-def get_rotate_2d_fig(xy, xy_rotated):
-    fig = make_subplots(rows=1, cols=2)
-
-    fig.update_layout(
-        autosize=False,
-        width=900,
-        height=400)
-
-    fig.add_trace(
-        go.Scatter(
-            visible=True,
-            line=dict(color="black", width=2),
-            x=xy[:,0],
-            y=xy[:,1],
-            showlegend=False),
-        row=1,col=1)
-
-    fig.add_trace(
-        go.Scatter(
-            visible=True,
-            line=dict(color="green", width=2),
-            x=xy_rotated[:,0],
-            y=xy_rotated[:,1],
-            showlegend=False),
-    row=1, col=2)
-    return fig
-
-def get_recon_mesh_plotter(orig_mesh, recon_mesh):
-    plotter = pv.Plotter(window_size=[900,400], shape=(1,2)) 
-    plotter.subplot(0,0)
-    plotter.add_mesh(orig_mesh, color="lightgray")
-    plotter.subplot(0,1)
-    plotter.add_mesh(recon_mesh, color="lightgray")
-    plotter.set_background("white")
-    return plotter
-
-def interactive_latent_walk_plot(recon_meshes, latent_walk_meshes):
-    p = pv.Plotter()
-
-    p.add_mesh(recon_meshes[0], 
-               render=False, 
-               show_scalar_bar=False)
-
-    p.show(auto_close=False, 
-           interactive=True, 
-           interactive_update=True)
-
-    def update(i):
-        i = int(i)
-        p.add_mesh(recon_meshes[i], 
-                   render=False,
-                   show_scalar_bar=False)
-        p.update()
-
-    slider_labels = [str(i) for i in range(len(latent_walk_meshes))]
-    lmax_slider = p.add_text_slider_widget(
-        update, 
-        slider_labels,
-        0,
-        pointa=(0.25, 0.9), 
-        pointb=(0.75, 0.9), 
-        event_type="always")
-
 def get_polar_contour_fig(rad, theta):
     fig = go.Figure()
     fig.update_layout(
@@ -145,40 +69,53 @@ def get_polar_contour_fig(rad, theta):
     fig.update_layout(polar = dict(radialaxis = dict(showticklabels = False)))
     return fig
 
-def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
-    fig_clust = px.scatter(x=axes[:,0],
-                           y=axes[:,1],
-                           color=labels)
+def get_square_cartesian_vs_polar_fig(x,y,r,theta):
+    fig = make_subplots(
+        rows=1, cols=2, 
+        specs=[[{},{"type":"polar"}]],
+        column_widths=[0.45,0.55])
 
-    fig_latent_walk = px.line(x=walk_line_x, 
-                              y=walk_line_y,
-                              markers=True)
-    fig_latent_walk.update_traces(line_color="black")
+    fig.update_layout(
+        autosize=False,
+        width=900,
+        height=600)
 
-    fig = go.Figure(data=fig_clust.data + fig_latent_walk.data)
-    fig.add_annotation(
-        x=walk_line_x[2],
-        y=walk_line_y[2],
-        ax=walk_line_x[1] - 0.2,
-        ay=walk_line_y[1],
-        xref="x",
-        yref="y",
-        axref="x",
-        ayref="y",
-        text="",
-        showarrow=True,
-        arrowhead=3,
-        arrowsize=5,
-        arrowwidth=1,
-        arrowcolor="black",
-        )
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            line=dict(color="black", width=2),
+            x=x,
+            y=y,
+            showlegend=False),
+        row=1, col=1)
+
+    fig.update_xaxes(range=[x.min()-0.2, x.max()+0.2],row=1,col=1)
+    fig.update_yaxes(
+        scaleanchor = "x",
+        scaleratio = 1,
+        row=1,
+        col=1
+    )
+
+    fig.add_trace(
+        go.Scatterpolar(
+            visible=True,
+            line=dict(color="black", width=2),
+            thetaunit = "radians",
+            theta=theta,
+            r=r,
+            showlegend=False),
+        row=1, col=2)
+
+    fig.update_polars(radialaxis=dict(range=[0, 1.5]))
+    fig.update_layout(polar = dict(radialaxis = dict(showticklabels = False)))
+
     return fig
 
 def get_one_param_polar_fig(theta, rad, x, y):
 
     fig = make_subplots(rows=1, cols=2,
                         column_widths=[0.6,0.4])
-
     
     sorted_idxs = np.argsort(theta)
     theta_sorted = theta[sorted_idxs]
@@ -432,49 +369,6 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
 
     return fig
 
-def get_square_cartesian_vs_polar_fig(x,y,r,theta):
-    fig = make_subplots(
-        rows=1, cols=2, 
-        specs=[[{},{"type":"polar"}]],
-        column_widths = [0.45,0.55])
-
-    fig.update_layout(
-        autosize=False,
-        width=900,
-        height=600)
-
-    fig.add_trace(
-        go.Scatter(
-            visible=True,
-            line=dict(color="black", width=2),
-            x=x,
-            y=y,
-            showlegend=False),
-        row=1, col=1)
-
-    fig.update_xaxes(range=[x.min()-0.2, x.max()+0.2],row=1,col=1)
-    fig.update_yaxes(
-        scaleanchor = "x",
-        scaleratio = 1,
-        row=1,
-        col=1
-    )
-
-    fig.add_trace(
-        go.Scatterpolar(
-            visible=True,
-            line=dict(color="black", width=2),
-            thetaunit = "radians",
-            theta=theta,
-            r=r,
-            showlegend=False),
-        row=1, col=2)
-
-    fig.update_polars(radialaxis=dict(range=[0, 1.5]))
-    fig.update_layout(polar = dict(radialaxis = dict(showticklabels = False)))
-
-    return fig
-
 def get_two_param_coeff_table(xy):
     save_terms = [1,8,16,24]
     saved_coeffs = []
@@ -504,6 +398,98 @@ def get_two_param_coeff_table(xy):
     df["n_terms"] = ["1 term", "8 terms", "16 terms", "24 terms"]
     df = df.set_index("n_terms")
     return df
+
+def get_rotate_2d_fig(xy, xy_rotated):
+    fig = make_subplots(rows=1, cols=2)
+
+    fig.update_layout(
+        autosize=False,
+        width=900,
+        height=400)
+
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            line=dict(color="black", width=2),
+            x=xy[:,0],
+            y=xy[:,1],
+            showlegend=False),
+        row=1,col=1)
+
+    fig.add_trace(
+        go.Scatter(
+            visible=True,
+            line=dict(color="green", width=2),
+            x=xy_rotated[:,0],
+            y=xy_rotated[:,1],
+            showlegend=False),
+    row=1, col=2)
+    return fig
+
+def get_recon_mesh_plotter(orig_mesh, recon_mesh):
+    plotter = pv.Plotter(window_size=[900,400], shape=(1,2)) 
+    plotter.subplot(0,0)
+    plotter.add_mesh(orig_mesh, color="lightgray")
+    plotter.subplot(0,1)
+    plotter.add_mesh(recon_mesh, color="lightgray")
+    plotter.set_background("white")
+    return plotter
+
+def interactive_latent_walk_plot(recon_meshes, latent_walk_meshes):
+    p = pv.Plotter()
+
+    p.add_mesh(recon_meshes[0], 
+               render=False, 
+               show_scalar_bar=False)
+
+    p.show(auto_close=False, 
+           interactive=True, 
+           interactive_update=True)
+
+    def update(i):
+        i = int(i)
+        p.add_mesh(recon_meshes[i], 
+                   render=False,
+                   show_scalar_bar=False)
+        p.update()
+
+    slider_labels = [str(i) for i in range(len(latent_walk_meshes))]
+    lmax_slider = p.add_text_slider_widget(
+        update, 
+        slider_labels,
+        0,
+        pointa=(0.25, 0.9), 
+        pointb=(0.75, 0.9), 
+        event_type="always")
+
+def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
+    fig_clust = px.scatter(x=axes[:,0],
+                           y=axes[:,1],
+                           color=labels)
+
+    fig_latent_walk = px.line(x=walk_line_x, 
+                              y=walk_line_y,
+                              markers=True)
+    fig_latent_walk.update_traces(line_color="black")
+
+    fig = go.Figure(data=fig_clust.data + fig_latent_walk.data)
+    fig.add_annotation(
+        x=walk_line_x[2],
+        y=walk_line_y[2],
+        ax=walk_line_x[1] - 0.2,
+        ay=walk_line_y[1],
+        xref="x",
+        yref="y",
+        axref="x",
+        ayref="y",
+        text="",
+        showarrow=True,
+        arrowhead=3,
+        arrowsize=5,
+        arrowwidth=1,
+        arrowcolor="black",
+        )
+    return fig
 
 def get_pca_result_fig(axes, labels):
     fig = px.scatter(x=axes[:,0],
