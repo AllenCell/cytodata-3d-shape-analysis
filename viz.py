@@ -487,8 +487,11 @@ def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
         arrowhead=3,
         arrowsize=5,
         arrowwidth=1,
-        arrowcolor="black",
-        )
+        arrowcolor="black")
+
+    fig.update_layout(
+        xaxis_title="PC1", yaxis_title="PC2")
+
     return fig
 
 def get_pca_result_fig(axes, labels):
