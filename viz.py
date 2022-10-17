@@ -12,6 +12,11 @@ pv.global_theme.font.color = "black"
 
 def get_square_wave_fig(x,y,L,an,bn,n_terms=100):
     fig = go.Figure()
+    
+    fig.update_layout(
+        autosize=False,
+        width=1100,
+        height=600)
 
     fig.add_trace(
         go.Scatter(
@@ -123,7 +128,7 @@ def get_one_param_polar_fig(theta, rad, x, y):
 
     fig.update_layout(
         autosize=False,
-        width=950,
+        width=1100,
         height=600)
 
 
@@ -223,7 +228,7 @@ def get_two_param_2d_fig(coeffs, a0, c0, xy, n_points, n_terms, show_recon_err=F
 
     fig.update_layout(
         autosize=False,
-        width=950,
+        width=1100,
         height=600)
 
     fig.add_trace(
@@ -427,7 +432,7 @@ def get_rotate_2d_fig(xy, xy_rotated):
     return fig
 
 def get_recon_mesh_plotter(orig_mesh, recon_mesh):
-    plotter = pv.Plotter(window_size=[900,400], shape=(1,2)) 
+    plotter = pv.Plotter(window_size=[1000,300], shape=(1,2)) 
     plotter.subplot(0,0)
     plotter.add_mesh(orig_mesh, color="lightgray")
     plotter.subplot(0,1)
@@ -490,7 +495,11 @@ def get_pca_clust_latent_walk_fig(axes, walk_line_x, walk_line_y, labels):
         arrowcolor="black")
 
     fig.update_layout(
-        xaxis_title="PC1", yaxis_title="PC2")
+        autosize=False,
+        width=1100,
+        height=600,
+        xaxis_title="PC1", 
+        yaxis_title="PC2")
 
     return fig
 
@@ -499,7 +508,12 @@ def get_pca_result_fig(axes, labels):
                     y=axes[:,1],
                     color=labels)
     fig.update_layout(
-        xaxis_title="PC1", yaxis_title="PC2"
+        autosize=False,
+        width=1100,
+        height=600,
+        legend_title="shape",
+        xaxis_title="PC1", 
+        yaxis_title="PC2"
     )
     return fig
 
@@ -546,4 +560,3 @@ def interactive_reconstruction_plot(recon_errors, recon_meshes):
         pointa=(0.25, 0.9), 
         pointb=(0.75, 0.9), 
         event_type="always")
-        
